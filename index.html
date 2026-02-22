@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incident Response Procedure &amp; L1 SOC Playbook</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #e0e6ed;
+      background: #0b1120;
+      line-height: 1.7;
+    }
+
+    /* ── Accent palette ── */
+    :root {
+      --cyan:    #00e5ff;
+      --blue:    #2979ff;
+      --violet:  #7c4dff;
+      --red:     #ff5252;
+      --amber:   #ffc107;
+      --green:   #69f0ae;
+      --surface: #131b2e;
+      --card:    #17203a;
+      --border:  #1e2a45;
+      --text:    #c5cdd8;
+      --heading: #e8edf3;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Top navigation ── */
+    .topnav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(11,17,32,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: .6rem 2rem;
+      overflow-x: auto;
+    }
+    .topnav .brand {
+      font-weight: 700; font-size: 1rem; color: var(--cyan);
+      white-space: nowrap; margin-right: .5rem;
+      display: flex; align-items: center; gap: .45rem;
+    }
+    .topnav .brand svg { flex-shrink: 0; }
+    .topnav a {
+      color: var(--text); text-decoration: none; font-size: .82rem;
+      padding: .3rem .6rem; border-radius: 6px; white-space: nowrap;
+      transition: background .2s, color .2s;
+    }
+    .topnav a:hover, .topnav a:focus { background: var(--card); color: #fff; }
+
+    /* ── Layout wrapper ── */
+    .wrapper { max-width: 1080px; margin: 0 auto; padding: 5rem 1.5rem 4rem; }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center; padding: 3rem 1rem 2.5rem;
+      background: linear-gradient(135deg, rgba(0,229,255,.08), rgba(124,77,255,.08));
+      border: 1px solid var(--border); border-radius: 16px;
+      margin-bottom: 2.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      color: #fff; font-weight: 800; letter-spacing: -.02em;
+    }
+    .hero h1 span { color: var(--cyan); }
+    .hero .subtitle {
+      margin-top: .6rem; font-size: 1.05rem; color: var(--text);
+      max-width: 680px; margin-left: auto; margin-right: auto;
+    }
+    .hero .badges {
+      margin-top: 1.2rem; display: flex; flex-wrap: wrap;
+      gap: .5rem; justify-content: center;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: .3rem;
+      font-size: .75rem; padding: .3rem .7rem; border-radius: 99px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text);
+    }
+    .badge.cyan  { border-color: var(--cyan);  color: var(--cyan); }
+    .badge.blue  { border-color: var(--blue);  color: var(--blue); }
+    .badge.violet{ border-color: var(--violet); color: var(--violet); }
+
+    /* ── Section titles ── */
+    .section { margin-bottom: 2.5rem; }
+    .section-id { scroll-margin-top: 4rem; }
+    .section h2 {
+      font-size: 1.35rem; color: var(--heading); font-weight: 700;
+      margin-bottom: .6rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .section h2 .icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .95rem; flex-shrink: 0;
+    }
+    .section h3 {
+      font-size: 1.08rem; color: var(--heading); font-weight: 600;
+      margin: 1.2rem 0 .4rem;
+    }
+    .section p, .section li { color: var(--text); }
+    .section ul, .section ol { padding-left: 1.4rem; margin: .4rem 0; }
+    .section li { margin-bottom: .3rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem; margin-bottom: 1.2rem;
+    }
+    .card.highlight-cyan  { border-left: 3px solid var(--cyan); }
+    .card.highlight-blue  { border-left: 3px solid var(--blue); }
+    .card.highlight-violet{ border-left: 3px solid var(--violet); }
+    .card.highlight-red   { border-left: 3px solid var(--red); }
+    .card.highlight-green { border-left: 3px solid var(--green); }
+    .card.highlight-amber { border-left: 3px solid var(--amber); }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; margin: .8rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th {
+      background: var(--surface); color: var(--cyan); font-weight: 600;
+      text-align: left; padding: .65rem .8rem; white-space: nowrap;
+    }
+    td { padding: .6rem .8rem; border-top: 1px solid var(--border); color: var(--text); }
+    tr:hover td { background: rgba(0,229,255,.03); }
+
+    /* ── Timeline ── */
+    .timeline { position: relative; padding-left: 2.2rem; margin: 1rem 0; }
+    .timeline::before {
+      content: ''; position: absolute; left: .7rem; top: 0; bottom: 0;
+      width: 2px; background: linear-gradient(180deg, var(--cyan), var(--violet));
+    }
+    .tl-item { position: relative; margin-bottom: 1.3rem; }
+    .tl-item::before {
+      content: ''; position: absolute; left: -1.85rem; top: .35rem;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--cyan); border: 2px solid var(--surface);
+    }
+    .tl-item:nth-child(2)::before { background: var(--blue); }
+    .tl-item:nth-child(3)::before { background: var(--violet); }
+    .tl-item:nth-child(4)::before { background: var(--amber); }
+    .tl-item:nth-child(5)::before { background: var(--green); }
+    .tl-label {
+      font-size: .78rem; font-weight: 700; color: var(--cyan);
+      margin-bottom: .15rem;
+    }
+    .tl-item:nth-child(2) .tl-label { color: var(--blue); }
+    .tl-item:nth-child(3) .tl-label { color: var(--violet); }
+    .tl-item:nth-child(4) .tl-label { color: var(--amber); }
+    .tl-item:nth-child(5) .tl-label { color: var(--green); }
+    .tl-body { font-size: .9rem; color: var(--text); }
+
+    /* ── Step cards (numbered) ── */
+    .steps { counter-reset: step; }
+    .step {
+      counter-increment: step; position: relative;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.2rem 1.2rem 1.2rem 3.4rem;
+      margin-bottom: .8rem;
+    }
+    .step::before {
+      content: counter(step);
+      position: absolute; left: 1rem; top: 1.15rem;
+      width: 1.6rem; height: 1.6rem; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      color: #0b1120; font-weight: 800; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step h4 { font-size: .98rem; color: var(--heading); margin-bottom: .25rem; }
+    .step p  { font-size: .88rem; }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      position: relative; padding-left: 1.7rem; margin-bottom: .5rem;
+      font-size: .9rem;
+    }
+    .checklist li::before {
+      content: '☐'; position: absolute; left: 0; top: 0;
+      color: var(--cyan); font-size: 1rem;
+    }
+
+    /* ── Code / template blocks ── */
+    .template-block {
+      background: #0d1526; border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.2rem 1.4rem;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: .82rem; color: var(--text);
+      white-space: pre-wrap; word-break: break-word;
+      line-height: 1.65; margin: .8rem 0;
+      overflow-x: auto;
+    }
+    .template-block .field { color: var(--amber); }
+    .template-block .label-text { color: var(--cyan); }
+    .template-block .divider { color: #3a4a6a; }
+
+    /* ── Phase progress bar ── */
+    .phase-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: .6rem; margin: 1rem 0;
+    }
+    .phase-pill {
+      text-align: center; padding: .7rem .5rem; border-radius: 10px;
+      font-size: .82rem; font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .phase-pill.p1 { background: rgba(0,229,255,.1); color: var(--cyan); border-color: rgba(0,229,255,.3); }
+    .phase-pill.p2 { background: rgba(41,121,255,.1); color: var(--blue); border-color: rgba(41,121,255,.3); }
+    .phase-pill.p3 { background: rgba(124,77,255,.1); color: var(--violet); border-color: rgba(124,77,255,.3); }
+    .phase-pill.p4 { background: rgba(255,193,7,.1); color: var(--amber); border-color: rgba(255,193,7,.3); }
+    .phase-pill.p5 { background: rgba(105,240,174,.1); color: var(--green); border-color: rgba(105,240,174,.3); }
+    .phase-pill small { display: block; font-weight: 400; font-size: .72rem; margin-top: .15rem; opacity: .8; }
+
+    /* ── Callout ── */
+    .callout {
+      display: flex; gap: .8rem; padding: 1rem 1.2rem;
+      border-radius: 10px; margin: .8rem 0; font-size: .88rem;
+      align-items: flex-start;
+    }
+    .callout.info  { background: rgba(0,229,255,.07); border: 1px solid rgba(0,229,255,.2); }
+    .callout.warn  { background: rgba(255,193,7,.07);  border: 1px solid rgba(255,193,7,.2); }
+    .callout.danger{ background: rgba(255,82,82,.07);  border: 1px solid rgba(255,82,82,.2); }
+    .callout .icon-c { font-size: 1.2rem; flex-shrink: 0; line-height: 1.3; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 2rem 1rem; margin-top: 2rem;
+      border-top: 1px solid var(--border); font-size: .82rem; color: #5a6a85;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .topnav { padding: .5rem .8rem; gap: .6rem; }
+      .wrapper { padding: 4.5rem 1rem 3rem; }
+      .hero { padding: 2rem .8rem 1.8rem; }
+      .step { padding-left: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════  TOP NAV  ════════════════════ -->
+<nav class="topnav" role="navigation" aria-label="Main navigation">
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    IR&nbsp;Playbook
+  </div>
+  <a href="#executive-summary">Summary</a>
+  <a href="#standards">Standards</a>
+  <a href="#mapping">Mapping</a>
+  <a href="#ir-process">IR Process</a>
+  <a href="#l1-playbook">L1 Playbook</a>
+  <a href="#timeline">Timeline</a>
+  <a href="#escalation">Escalation</a>
+  <a href="#templates">Templates</a>
+  <a href="#references">References</a>
+</nav>
+
+<div class="wrapper">
+
+<!-- ════════════════════  HERO  ════════════════════ -->
+<header class="hero">
+  <h1>Complete <span>Incident Response</span> Procedure</h1>
+  <p class="subtitle">
+    A full IR process documentation with an L1&nbsp;SOC&nbsp;Playbook&mdash;mapped to
+    NIST&nbsp;SP&nbsp;800&#8209;61, ISO/IEC&nbsp;27035, SANS&nbsp;PICERL, ENISA, and FIRST.
+  </p>
+  <div class="badges">
+    <span class="badge cyan">NIST SP 800-61r3</span>
+    <span class="badge blue">ISO/IEC 27035</span>
+    <span class="badge violet">SANS PICERL</span>
+    <span class="badge">ENISA</span>
+    <span class="badge">FIRST CSIRT</span>
+  </div>
+</header>
+
+<!-- ══════════  §1 EXECUTIVE SUMMARY  ══════════ -->
+<section class="section section-id" id="executive-summary">
+  <h2><span class="icon" style="background:rgba(0,229,255,.15); color:var(--cyan);">📋</span> Executive Summary</h2>
+  <div class="card highlight-cyan">
+    <p>
+      The goal of this document is to provide an Incident Response (IR) process that is <strong>complete enough
+      to be requested during a real incident</strong>, yet still usable on shift&mdash;especially for an L1 analyst.
+    </p>
+    <p style="margin-top:.6rem;">
+      The process uses <strong>NIST SP 800-61</strong> (r2/r3) as the operational backbone,
+      <strong>ISO/IEC 27035-1/2</strong> for governance and &ldquo;plan / prepare + lessons learned,&rdquo;
+      <strong>SANS PICERL</strong> as the easy-to-remember response flow,
+      <strong>ENISA</strong> for practical triage handling, and
+      <strong>FIRST</strong> to frame what services a CSIRT typically provides (and what should be escalated).
+      Practical time-pressure insights from <strong>Mandiant</strong> and <strong>CrowdStrike</strong>
+      ensure the &ldquo;first hour&rdquo; actions stay realistic rather than theoretical.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════  §2 STANDARDS LANDSCAPE  ══════════ -->
+<section class="section section-id" id="standards">
+  <h2><span class="icon" style="background:rgba(41,121,255,.15); color:var(--blue);">🌐</span> Standards Landscape</h2>
+  <p>Globally, the most common &ldquo;reference set&rdquo; for IR includes:</p>
+
+  <div class="card highlight-blue" style="margin-top:.8rem;">
+    <ul>
+      <li><strong>NIST SP 800-61</strong> &mdash; incident handling lifecycle and practical guidance (r2 archived; r3 is current).</li>
+      <li><strong>ISO/IEC 27035-1/2</strong> &mdash; incident management concepts, structured process, planning/preparing, and lessons learned.</li>
+      <li><strong>ENISA</strong> &mdash; practical triage operations (verification &rarr; initial classification &rarr; assignment) and handling flow.</li>
+      <li><strong>FIRST CSIRT Services Framework</strong> &mdash; service boundaries (acceptance, analysis, forensic evidence analysis, mitigation/recovery, coordination, crisis support).</li>
+      <li><strong>SANS PICERL</strong> &mdash; simple operational rhythm responders can remember under stress.</li>
+    </ul>
+  </div>
+
+  <div class="callout info">
+    <span class="icon-c">💡</span>
+    <div>
+      <strong>What feels most logical</strong> (and easiest to defend to an auditor/management):
+      use <em>NIST SP 800-61r3</em> as the &ldquo;spine,&rdquo; keep <em>ISO/IEC 27035</em> as the governance wrapper,
+      and teach <em>PICERL</em> as the day-to-day muscle memory.
+      NIST SP 800-53 control IR-4 literally defines incident handling as
+      preparation &rarr; detection/analysis &rarr; containment &rarr; eradication &rarr; recovery
+      (and requires an incident response plan).
+    </div>
+  </div>
+</section>
+
+<!-- ══════════  §3 PICERL ↔ NIST MAPPING  ══════════ -->
+<section class="section section-id" id="mapping">
+  <h2><span class="icon" style="background:rgba(124,77,255,.15); color:var(--violet);">🔄</span> PICERL vs NIST Lifecycle Mapping</h2>
+
+  <div class="phase-bar">
+    <div class="phase-pill p1">Preparation<small>SANS &amp; NIST</small></div>
+    <div class="phase-pill p2">Identification<small>Detection &amp; Analysis</small></div>
+    <div class="phase-pill p3">Containment<small>Stop the bleeding</small></div>
+    <div class="phase-pill p4">Eradication<small>Remove root cause</small></div>
+    <div class="phase-pill p5">Recovery + LL<small>Restore &amp; improve</small></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>What I Do in Practice</th><th>SANS PICERL</th><th>NIST SP 800-61r2 Lifecycle</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Get ready before it hurts</td>
+          <td>Preparation</td>
+          <td>Preparation</td>
+        </tr>
+        <tr>
+          <td>Confirm something bad is happening and understand scope</td>
+          <td>Identification</td>
+          <td>Detection &amp; Analysis</td>
+        </tr>
+        <tr>
+          <td>Stop the bleeding, then remove the root cause</td>
+          <td>Containment + Eradication</td>
+          <td>Containment, Eradication &amp; Recovery</td>
+        </tr>
+        <tr>
+          <td>Bring services back safely, then improve</td>
+          <td>Recovery + Lessons Learned</td>
+          <td>Recovery + Post-Incident Activity</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════  §4 COMPLETE IR PROCESS  ══════════ -->
+<section class="section section-id" id="ir-process">
+  <h2><span class="icon" style="background:rgba(0,229,255,.15); color:var(--cyan);">⚙️</span> Complete IR Process Steps</h2>
+  <p>This is the full end-to-end process. Even as L1, each phase is documented so the organization can show a complete procedure when asked.</p>
+
+  <!-- Phase 1 -->
+  <h3>Phase 1 &mdash; Preparation</h3>
+  <div class="card highlight-cyan">
+    <p>
+      This phase covers setup: <strong>roles, escalation paths, communication channels, triage rules,
+      and minimum evidence discipline.</strong>
+    </p>
+    <p style="margin-top:.5rem;">
+      NIST SP 800-61r3 reframes IR as part of broader risk management (not a rare one-off event),
+      and NIST SP 800-53 requires an IR plan plus an incident handling capability aligned to it.
+    </p>
+    <div class="callout warn" style="margin-top:.8rem;">
+      <span class="icon-c">⚠️</span>
+      <div>
+        <strong>Unspecified in this task:</strong> tooling (SIEM/EDR/ticketing), retention windows,
+        legal/regulatory reporting triggers, and severity definitions.
+        These are organizational decisions that must be filled in.
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <h3>Phase 2 &mdash; Detection and Reporting</h3>
+  <div class="card highlight-blue">
+    <p>
+      How incidents enter the system: an <strong>alert, a user report, a third-party notification, or anomaly detection.</strong>
+      The key is that the report is captured consistently and immediately.
+      ENISA&rsquo;s handling flow starts with incoming reports and then moves to triage.
+    </p>
+  </div>
+
+  <!-- Phase 3 -->
+  <h3>Phase 3 &mdash; Triage + Incident Declaration</h3>
+  <div class="card highlight-violet">
+    <p>
+      Decide: &ldquo;Is this a ticket? A security event? Or do we declare an incident?&rdquo;
+    </p>
+    <p style="margin-top:.5rem;">
+      NIST SP 800-61r2 calls out that organizations should expect false positives and ambiguity during detection/analysis;
+      ENISA breaks triage into <strong>verification, initial classification, and assignment.</strong>
+    </p>
+    <p style="margin-top:.5rem;">
+      <strong>L1 Deliverable:</strong> a clean, timestamped record of what was seen, verified, and escalated.
+    </p>
+  </div>
+
+  <!-- Phase 4 -->
+  <h3>Phase 4 &mdash; Analysis and Scoping</h3>
+  <div class="card highlight-amber">
+    <p>
+      Shift from &ldquo;one alert&rdquo; to &ldquo;what is the blast radius?&rdquo;
+      Scoping is iterative: <strong>confirm &rarr; expand scope &rarr; confirm again.</strong>
+      NIST SP 800-61r2 explicitly shows the lifecycle can loop back to detection/analysis
+      (e.g., when new affected hosts are found).
+    </p>
+    <p style="margin-top:.5rem;">
+      <strong>L1 Deliverable:</strong> initial scope hypothesis + evidence pointers (log sources, timestamps,
+      affected identities/assets). If deep forensics is required, that decision is escalated.
+    </p>
+  </div>
+
+  <!-- Phase 5 -->
+  <h3>Phase 5 &mdash; Containment, Eradication &amp; Recovery</h3>
+  <div class="card highlight-red">
+    <p>
+      <strong>Containment</strong> stops damage; <strong>eradication</strong> removes attacker footholds;
+      <strong>recovery</strong> restores operations safely.
+      NIST SP 800-53 IR-4 explicitly requires these stages.
+    </p>
+    <p style="margin-top:.5rem;">
+      As L1, broad containment is typically not executed unless pre-approved playbooks exist.
+      Consistent actions: <strong>document recommended containment options + impact + urgency</strong> and hand them to L2/L3.
+    </p>
+  </div>
+
+  <!-- Phase 6 -->
+  <h3>Phase 6 &mdash; Post-Incident Activity &amp; Improvement</h3>
+  <div class="card highlight-green">
+    <p>
+      Post-incident review is <strong>not optional</strong> if process completeness is the goal.
+      NIST SP 800-61r3 emphasizes continuous improvement and integrating lessons learned into ongoing risk management.
+    </p>
+    <p style="margin-top:.5rem;">
+      <strong>L1 Contribution:</strong> preserve notes/action log, ensure the timeline is readable,
+      and note what was missing (access, logs, contacts, unclear ownership).
+    </p>
+  </div>
+</section>
+
+<!-- ══════════  §5 L1 PLAYBOOK  ══════════ -->
+<section class="section section-id" id="l1-playbook">
+  <h2><span class="icon" style="background:rgba(105,240,174,.15); color:var(--green);">🎯</span> L1 SOC Playbook &mdash; Detection &amp; Triage</h2>
+  <p>Six &ldquo;always-do&rdquo; steps for every incident, regardless of type, when the tech stack is unspecified.</p>
+
+  <div class="steps" style="margin-top:1rem;">
+    <div class="step">
+      <h4>Open a Record Immediately</h4>
+      <p>Create a case even if it is &ldquo;suspected.&rdquo; Never trust memory during an incident.</p>
+    </div>
+    <div class="step">
+      <h4>Verify the Signal (Quick Sanity Checks)</h4>
+      <p>
+        Check whether the alert/report has enough grounding: correct asset identity, timestamps,
+        event type, obvious false-positive reasons, and whether similar alerts exist.
+      </p>
+    </div>
+    <div class="step">
+      <h4>Classify + Set Initial Severity (Provisional)</h4>
+      <p>
+        Classify type (credential misuse, malware, suspicious admin activity, data exfil suspicion, etc.)
+        and set a provisional severity based on potential impact and exposure.
+      </p>
+    </div>
+    <div class="step">
+      <h4>Scope Lightly (Find the &ldquo;Neighbors&rdquo;)</h4>
+      <p>
+        Look for related activity: same user, same host, same IOC, same time window, same destination, repeated pattern.
+        Aim for &ldquo;minimum useful scoping,&rdquo; not deep-dive forensics.
+      </p>
+    </div>
+    <div class="step">
+      <h4>Preserve What&rsquo;s Easy to Lose</h4>
+      <p>
+        Export/attach key logs, screenshots of dashboards, alert payloads, and exact timestamps.
+        If evidence handling is required, stop and escalate before anyone &ldquo;cleans&rdquo; the system
+        (per NIST 800-86).
+      </p>
+    </div>
+    <div class="step">
+      <h4>Escalate with a Clear Package</h4>
+      <p>
+        Escalate with: summary, impact guess, scope guess, what was checked,
+        what is recommended next, and what evidence was saved. Never send a vague message.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════  §6 CHECKLISTS & TIMELINE  ══════════ -->
+<section class="section section-id" id="timeline">
+  <h2><span class="icon" style="background:rgba(255,193,7,.15); color:var(--amber);">⏱️</span> First-Hour Checklists &amp; Timeline</h2>
+
+  <!-- 20-min checklist -->
+  <h3>First 20 Minutes</h3>
+  <div class="card highlight-cyan">
+    <ul class="checklist">
+      <li>Start case + start action log (timestamps in the SOC&rsquo;s standard timezone).</li>
+      <li>Confirm identity of the affected asset/account (hostname / user / service identity).</li>
+      <li>Pull alert context (raw event, detection rule name, correlation fields).</li>
+      <li>Quick dedupe: is this already known / already being handled?</li>
+      <li>Decide: event under investigation vs incident likely (and escalate if likely).</li>
+      <li>Preserve evidence artifacts without changing systems (exports, screenshots, alert JSON, etc.).</li>
+    </ul>
+  </div>
+
+  <!-- 1-hour checklist -->
+  <h3>By the One-Hour Mark</h3>
+  <div class="card highlight-blue">
+    <ul class="checklist">
+      <li>A one-paragraph incident narrative: &ldquo;what we think happened so far.&rdquo;</li>
+      <li>A short list of affected candidates (assets/accounts) + confidence level (&ldquo;confirmed&rdquo; vs &ldquo;suspected&rdquo;).</li>
+      <li>A &ldquo;what else could be impacted&rdquo; note (same user new geos / same IP multiple hosts).</li>
+      <li>Recommended containment options with impact (even if not authorized to execute).</li>
+      <li>Escalation decision (see matrix) and notification sent to the right channel.</li>
+      <li>Clean logs / evidence attached to the case.</li>
+    </ul>
+  </div>
+
+  <!-- Visual timeline -->
+  <h3>First-Hour Timeline</h3>
+  <div class="card" style="background:var(--surface);">
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-label">0 &ndash; 5 min</div>
+        <div class="tl-body">Open case &bull; Start action log &bull; Capture alert payload</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">5 &ndash; 15 min</div>
+        <div class="tl-body">Verify basics (asset / user / time) &bull; Quick false-positive checks &bull; Dedupe</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">15 &ndash; 30 min</div>
+        <div class="tl-body">Provisional classification + severity &bull; Light scoping (neighbors)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">30 &ndash; 45 min</div>
+        <div class="tl-body">Preserve key evidence exports / screenshots &bull; Draft 3-sentence narrative</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">45 &ndash; 60 min</div>
+        <div class="tl-body">Escalate to L2/L3 with &ldquo;package&rdquo; &bull; Suggest containment options &bull; Update case</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════  §7 ESCALATION MATRIX  ══════════ -->
+<section class="section section-id" id="escalation">
+  <h2><span class="icon" style="background:rgba(255,82,82,.15); color:var(--red);">🚨</span> Escalation &amp; Forensics Decision Matrix</h2>
+
+  <div class="callout danger">
+    <span class="icon-c">⚡</span>
+    <div>
+      <strong>Time matters.</strong>
+      CrowdStrike reports average eCrime breakout time of <strong>62 minutes</strong> in 2023,
+      with the fastest observed at <strong>2 minutes 7 seconds</strong>.
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-top:1rem;">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:220px;">What I See</th>
+          <th>→ L2</th>
+          <th>→ L3 / IR Lead</th>
+          <th>→ Forensics</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Single low-confidence alert, no corroboration, no privileged accounts</td>
+          <td>Yes (for validation / tuning)</td>
+          <td>Not yet</td>
+          <td>Not yet</td>
+        </tr>
+        <tr>
+          <td>Credential misuse suspected (impossible travel, repeated failed logins, suspicious token use)</td>
+          <td>Yes</td>
+          <td>Yes if privileged or widespread</td>
+          <td>If legal/regulatory exposure possible</td>
+        </tr>
+        <tr>
+          <td>Malware / EDR detection on one endpoint, no lateral movement signs</td>
+          <td>Yes</td>
+          <td>If critical asset or repeated infections</td>
+          <td>If hands-on-keyboard or persistence suspected</td>
+        </tr>
+        <tr>
+          <td>Any sign of lateral movement, persistence mechanisms, or domain-wide compromise indicators</td>
+          <td>Yes</td>
+          <td><strong>Immediately</strong></td>
+          <td>Likely yes (case-dependent)</td>
+        </tr>
+        <tr>
+          <td>Suspected data exfiltration, regulated data exposure, insider threat indicators</td>
+          <td>Yes</td>
+          <td><strong>Immediately</strong></td>
+          <td><strong>Yes</strong> (evidence-sensitive)</td>
+        </tr>
+        <tr>
+          <td>Incident already public / media involved / executive visibility</td>
+          <td>Yes</td>
+          <td><strong>Immediately</strong></td>
+          <td>Case-by-case; preserve evidence first</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn" style="margin-top:.8rem;">
+    <span class="icon-c">📌</span>
+    <div>
+      <strong>Unspecified but required for a final version:</strong>
+      clear definitions of &ldquo;critical asset,&rdquo; severity thresholds, regulated data categories,
+      legal triggers, and who has authority to approve containment actions.
+    </div>
+  </div>
+
+  <div class="callout info" style="margin-top:.6rem;">
+    <span class="icon-c">🔑</span>
+    <div>
+      <strong>FIRST alignment:</strong> FIRST explicitly separates &ldquo;incident report acceptance,&rdquo;
+      &ldquo;incident analysis,&rdquo; and &ldquo;artifact/forensic evidence analysis.&rdquo;
+      This is why L1 does not attempt full forensic work&mdash;evidence is packaged and escalated
+      to the function designed for it.
+    </div>
+  </div>
+</section>
+
+<!-- ══════════  §8 TEMPLATES  ══════════ -->
+<section class="section section-id" id="templates">
+  <h2><span class="icon" style="background:rgba(124,77,255,.15); color:var(--violet);">📄</span> Documentation Pack &amp; Templates</h2>
+  <p>
+    The &ldquo;paper trail&rdquo; that makes the process defensible.
+    Even a technically well-handled incident looks incomplete with weak documentation.
+  </p>
+
+  <!-- Template 1 -->
+  <h3>1. Incident Intake Form</h3>
+  <div class="template-block"><span class="label-text">INCIDENT INTAKE (L1)</span>
+
+<span class="label-text">Date/Time observed (TZ):</span> <span class="field">______________________</span>
+<span class="label-text">Reporter (name/team/vendor):</span> <span class="field">__________________</span>
+<span class="label-text">Contact method:</span> <span class="field">_______________________________</span>
+<span class="label-text">Detection source:</span> [alert | user report | vendor | other]
+
+<span class="label-text">Affected entity (as known now):</span>
+  - User/account:         <span class="field">_______________________________</span>
+  - Host/asset:           <span class="field">_________________________________</span>
+  - Service/app:          <span class="field">________________________________</span>
+  - Location/network seg: <span class="field">___________________</span>
+
+<span class="label-text">What happened (1-3 sentences, plain language):</span>
+<span class="field">________________________________________________</span>
+
+<span class="label-text">Key timestamps (if known):</span>
+  - First seen: <span class="field">_________________________________</span>
+  - Last seen:  <span class="field">_________________________________</span>
+
+<span class="label-text">Indicators / clues (copy exact values):</span>
+  - IPs/domains/URLs:              <span class="field">___________________________</span>
+  - Hashes/file paths:             <span class="field">__________________________</span>
+  - Email subject/sender (phishing): <span class="field">___________</span>
+
+<span class="label-text">Immediate impact observed:</span>
+  - Service disruption?       [Y/N]
+  - Potential data exposure?  [Y/N/Unknown]
+
+<span class="label-text">Actions already taken (if any):</span>
+<span class="field">________________________________________________</span>
+
+<span class="label-text">Initial classification (provisional):</span> <span class="field">____________</span>
+<span class="label-text">Initial severity (provisional):</span> <span class="field">_________________</span>
+<span class="label-text">Escalation requested to:</span> [L2 | L3 | Forensics]</div>
+
+  <!-- Template 2 -->
+  <h3>2. Action Log</h3>
+  <div class="template-block"><span class="label-text">ACTION LOG (keep this running)</span>
+
+<span class="label-text">Case ID:</span> <span class="field">______________________</span>  <span class="label-text">Timezone:</span> <span class="field">_______________</span>
+
+<span class="divider">Timestamp          Who        Action / Observation                     Why / Result
+------------------------------------------------------------------------------------</span>
+YYYY-MM-DD HH:MM   (me)       Opened case + started log                Baseline record
+YYYY-MM-DD HH:MM   (me)       Verified asset/user/time                 Confirmed / not confirmed
+YYYY-MM-DD HH:MM   (me)       Exported logs/screenshots                Preserved evidence
+YYYY-MM-DD HH:MM   (me)       Escalated to L2/L3                       Sent "package"</div>
+
+  <!-- Template 3 -->
+  <h3>3. Brief Communications Note</h3>
+  <div class="template-block"><span class="label-text">COMMS NOTE (brief)</span>
+
+<span class="label-text">Subject:</span> [Suspected/Confirmed] Security Incident - [type] - [asset/user]
+
+<span class="label-text">What I know right now:</span>
+  - Alert/report: <span class="field">_______________________________</span>
+  - Affected:     <span class="field">__________________________________</span>
+  - Time window:  <span class="field">_______________________________</span>
+  - Evidence saved in case: <span class="field">______________________</span>
+
+<span class="label-text">Impact (current assessment):</span>
+  - <span class="field">____________________________________________</span>
+
+<span class="label-text">What I recommend next:</span>
+  - <span class="field">____________________________________________</span>
+
+<span class="label-text">Escalated to:</span>
+  - [name/role/team] at [time]</div>
+</section>
+
+<!-- ══════════  §9 REFERENCES  ══════════ -->
+<section class="section section-id" id="references">
+  <h2><span class="icon" style="background:rgba(41,121,255,.15); color:var(--blue);">📚</span> References</h2>
+  <div class="card highlight-blue">
+    <ol>
+      <li>NIST SP 800-61r3 (2025), <em>Incident Response Recommendations and Considerations for Cybersecurity Risk Management</em> (CSF 2.0 Community Profile).</li>
+      <li>NIST SP 800-61r2 (2012; archived/withdrawn April 2025), <em>Computer Security Incident Handling Guide</em> (historical).</li>
+      <li>NIST SP 800-53 Rev. 5 (2020), <em>Security and Privacy Controls for Information Systems and Organizations</em> (IR-4 Incident Handling; IR-8 Incident Response Plan).</li>
+      <li>NIST SP 800-86 (2006), <em>Guide to Integrating Forensic Techniques into Incident Response</em>.</li>
+      <li>ISO/IEC 27035-1:2023, <em>Information security incident management &mdash; Part 1</em> (concepts/principles/process).</li>
+      <li>ISO/IEC 27035-2:2023, <em>Information security incident management &mdash; Part 2</em> (plan/prepare + learn lessons).</li>
+      <li>ENISA (2010), <em>Good Practice Guide for Incident Management</em> (incident handling flow; triage sub-phases).</li>
+      <li>FIRST (CSIRT Services Framework v2.1), service areas for incident report acceptance, incident analysis, artifact/forensic evidence analysis, mitigation/recovery, coordination, crisis support.</li>
+      <li>SANS, <em>504 Incident Response Cycle (PICERL) Cheat Sheet</em>.</li>
+      <li>Mandiant (M-Trends 2024), median dwell time and detection insights.</li>
+      <li>CrowdStrike (2024 Global Threat Report Executive Summary), breakout time statistics.</li>
+    </ol>
+  </div>
+</section>
+
+</div><!-- /wrapper -->
+
+<footer>
+  Incident Response Procedure &amp; L1 SOC Playbook &copy; 2025 &mdash;
+  Built on NIST &middot; ISO &middot; SANS &middot; ENISA &middot; FIRST
+</footer>
+
+</body>
+</html>
